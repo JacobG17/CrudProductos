@@ -183,74 +183,23 @@ namespace opDatos
             //Obtiene la suma total de los productos
             decimal sumaPrecioVentaTotal = productos.Sum(p => p.PrecioVenta);
 
-            //Obtiene cantidad de elementos de la lista productos
-            int cantidad = productos.Count;
-
             using (SqlConnection connection = new SqlConnection(cadenaConexion))
             {
                 try
                 {
-                    connection.Open();
-                    // Iniciar la transacción
-                    SqlCommand comandoInicio = new SqlCommand("BEGIN TRANSACTION", connection);
-                    comandoInicio.ExecuteNonQuery();
-
-                    SqlCommand comando1 = new SqlCommand($"INSERT INTO Inventario (Folio, Fecha, Total, TipoMovimiento) VALUES({folio}, GETDATE(), {sumaPrecioVentaTotal}, 'Salida')", connection);
-                    comando1.ExecuteNonQuery();
-
                     foreach (Producto producto in productos)
                     {
-                        if (productIDsProcesados.Contains(producto.ProductID))
-                        {
-                            continue;
-                        }
+                        connection.Open();
+                        // Ejecuta Store Procedure para realizar transaccion de productos
+                        SqlCommand comando = new SqlCommand($"EXEC GuardarDatosVenta @Folio = {folio}, @sumaPrecioVentaTotal = {sumaPrecioVentaTotal}, @ProductID = {producto.ProductID}, @cantidad = {producto.Cantidad}", connection);
 
-                        //obtiene la suma total de productos con el mismo ProductID
-                        var resultadoFiltrado = productos
-                            .Where(p => p.ProductID == producto.ProductID)
-                            .GroupBy(p => p.ProductID)
-                            .Select(g => new
-                            {
-                                ProductID = g.Key,
-                                CantidadTotal = g.Sum(p => p.Cantidad)
-                            });
-                        int sumaTotal = resultadoFiltrado.Sum(r => r.CantidadTotal);
-                        // Realiza la suma de Cantidad y PrecioVenta
-                        int saldoProducto = 0;
-                        SqlCommand comando2 = new SqlCommand($"SELECT saldo FROM Productos where ProductID = {producto.ProductID}", connection);
-                        using (SqlDataReader lector = comando2.ExecuteReader())
-                        {
-                            // Verificar si hay filas y leer el valor
-                            if (lector.Read())
-                            {
-                                if (int.TryParse(lector.GetValue(0).ToString(), out saldoProducto))
-                                {
-                                    // Aquí puedes utilizar la variable saldoProducto
-                                    int nuevoSaldo = saldoProducto - sumaTotal;
-                                    lector.Close();
-                                    SqlCommand comando3 = new SqlCommand($"UPDATE Productos SET Saldo = {nuevoSaldo} WHERE productID = {producto.ProductID}", connection);
-                                    comando3.ExecuteNonQuery();
+                        comando.ExecuteNonQuery();
 
-                                    productIDsProcesados.Add(producto.ProductID);
-
-                                    SqlCommand comando4 = new SqlCommand($"INSERT INTO InventarioDetalle (Folio, ProductID, Cantidad) VALUES({folio}, {producto.ProductID}, {sumaTotal})", connection);
-                                    comando4.ExecuteNonQuery();
-                                }
-                            }
-                        }
+                        connection.Close();
                     }
-                    // Confirmar la transacción
-                    SqlCommand comandoCommit = new SqlCommand("COMMIT", connection);
-                    comandoCommit.ExecuteNonQuery();
-
-                    connection.Close();
                 }
                 catch (Exception ex)
                 {
-                    // En caso de error, deshacer la transacción
-                    SqlCommand comandoRollback = new SqlCommand("ROLLBACK", connection);
-                    comandoRollback.ExecuteNonQuery();
-
                     throw new Exception(ex.Message);
                 }
             }

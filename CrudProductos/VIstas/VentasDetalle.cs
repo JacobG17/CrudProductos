@@ -56,43 +56,10 @@ namespace CrudProductos.VIstas
             }
         }
 
-        /*
-        private void obtenerFilas(int nFila)
-        {
-            datosList.Clear();
-
-            DataGridViewRow fila = dataGridView1.Rows[nFila];
-
-            foreach (DataGridViewCell celda in fila.Cells)
-            {
-                if (celda.OwningColumn.Name == "ProductID" && celda.Value != null)
-                {
-                    int productIDActual = Convert.ToInt32(celda.Value);
-                    bool existeEnLista = datosList.Any(f => f.ProductID == productIDActual);
-
-                    if (!existeEnLista)
-                    {
-                        DatosVentaDetalle datosVentaDetalle = new DatosVentaDetalle
-                        {
-                            Folio = Convert.ToInt32(fila.Cells["Folio"].Value),
-                            Fecha = Convert.ToDateTime(fila.Cells["Fecha"].Value),
-                            ProductID = productIDActual,
-                            Cantidad = Convert.ToInt32(fila.Cells["Cantidad"].Value),
-                            Total = Convert.ToDecimal(fila.Cells["Total"].Value),
-                            TipoMovimiento = Convert.ToString(fila.Cells["TipoMovimiento"].Value)
-                        };
-
-                        datosList.Add(datosVentaDetalle);
-                    }
-                }
-            }
-        }
-        */
         private void dataGridView1_CellMouseUp(object sender, DataGridViewCellMouseEventArgs e)
         {
             if (e.RowIndex >= 0)
             {
-                
                 // Obtener la fila que se hizo clic
                 DataGridViewRow filaSeleccionada = dataGridView1.Rows[e.RowIndex];
                 dataGridView1.ClearSelection();
