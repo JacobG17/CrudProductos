@@ -233,7 +233,7 @@ namespace opDatos
 
                                     productIDsProcesados.Add(producto.ProductID);
 
-                                    SqlCommand comando4 = new SqlCommand($"INSERT INTO InventarioDetalle (Folio, ProductID, Cantidad) VALUES({folio}, {producto.ProductID}, {cantidad})", connection);
+                                    SqlCommand comando4 = new SqlCommand($"INSERT INTO InventarioDetalle (Folio, ProductID, Cantidad) VALUES({folio}, {producto.ProductID}, {sumaTotal})", connection);
                                     comando4.ExecuteNonQuery();
                                 }
                             }
@@ -259,73 +259,35 @@ namespace opDatos
         //Funcion para deshacer transaccion de los datos
         public void rollbackTransaccion(List<DatosVentaDetalle> DatosVenta)
         {
-            HashSet<int> productIDsProcesados = new HashSet<int>();
-            productIDsProcesados.Clear();
+            int folio = obtenerConteoProductos(2);
 
-            //Obtiene la suma total de los productos
-            decimal sumaPrecioVentaTotal = DatosVenta[0].Total;
-
-            //Obtiene cantidad de elementos de la lista productos
-            int cantidad = DatosVenta[0].Cantidad;
-
-            int folio = obtenerConteoProductos(2) + 1;
+            int folioNuevo = obtenerConteoProductos(2) + 1;
 
             using (SqlConnection connection = new SqlConnection(cadenaConexion))
             {
                 try
                 {
-                    connection.Open();
-                    // Iniciar la transacción
-                    SqlCommand comandoInicio = new SqlCommand("BEGIN TRANSACTION", connection);
-                    comandoInicio.ExecuteNonQuery();
-
-                    SqlCommand comando1 = new SqlCommand($"INSERT INTO Inventario (Folio, Fecha, Total, TipoMovimiento) VALUES({folio}, GETDATE(), {sumaPrecioVentaTotal}, 'Entrada')", connection);
-                    comando1.ExecuteNonQuery();
-
                     foreach (DatosVentaDetalle datosDetalle in DatosVenta)
                     {
-                        if (productIDsProcesados.Contains(DatosVenta[0].ProductID))
-                        {
-                            continue;
-                        }
+                        //Obtiene la suma total de los productos
+                        decimal sumaPrecioVentaTotal = datosDetalle.Total;
 
-                        int sumaTotal = DatosVenta[0].Cantidad;
+                        //Obtiene cantidad de elementos de la lista productos
+                        int cantidad = datosDetalle.Cantidad;
 
-                        // Realizar la suma de Cantidad y PrecioVenta
-                        int saldoProducto = 0;
-                        SqlCommand comando2 = new SqlCommand($"SELECT saldo FROM Productos where ProductID = {DatosVenta[0].ProductID}", connection);
-                        using (SqlDataReader lector = comando2.ExecuteReader())
-                        {
-                            // Verificar si hay filas y leer el valor
-                            if (lector.Read())
-                            {
-                                if (int.TryParse(lector.GetValue(0).ToString(), out saldoProducto))
-                                {
-                                    int nuevoSaldo = saldoProducto + sumaTotal;
-                                    lector.Close();
-                                    SqlCommand comando3 = new SqlCommand($"UPDATE Productos SET Saldo = {nuevoSaldo} WHERE productID = {DatosVenta[0].ProductID}", connection);
-                                    comando3.ExecuteNonQuery();
+                        int productoID = datosDetalle.ProductID;
 
-                                    productIDsProcesados.Add(DatosVenta[0].ProductID);
+                        connection.Open();
+                        // Ejecuta Store Procedure para realizar transaccion de productos
+                        SqlCommand comando = new SqlCommand($"EXEC DeshacerTransaccion @Folio = {folio}, @folioNuevo = {folioNuevo}, @ProductID = {productoID}, @cantidad = {cantidad}, @sumaPrecioVentaTotal = {sumaPrecioVentaTotal}", connection);
 
-                                    SqlCommand comando4 = new SqlCommand($"INSERT INTO InventarioDetalle (Folio, ProductID, Cantidad) VALUES({folio}, {DatosVenta[0].ProductID}, {cantidad})", connection);
-                                    comando4.ExecuteNonQuery();
-                                }
-                            }
-                        }
+                        comando.ExecuteNonQuery();
+
+                        connection.Close();
                     }
-                    // Confirmar la transacción
-                    SqlCommand comandoCommit = new SqlCommand("COMMIT", connection);
-                    comandoCommit.ExecuteNonQuery();
-
-                    connection.Close();
                 }
                 catch (Exception ex)
                 {
-                    // En caso de error, deshacer la transacción
-                    SqlCommand comandoRollback = new SqlCommand("ROLLBACK", connection);
-                    comandoRollback.ExecuteNonQuery();
-
                     throw new Exception(ex.Message);
                 }
             }
@@ -334,6 +296,7 @@ namespace opDatos
         //Funcion para obtener los datos de la tabla InventarioDetalle
         public DataTable obtenerInventarioDetalle()
         {
+            tabla.Clear();
             try
             {
                 using (SqlConnection connection = new SqlConnection(cadenaConexion))

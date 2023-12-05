@@ -29,6 +29,34 @@ namespace CrudProductos.VIstas
             dataGridView1.DataSource = datos.obtenerInventarioDetalle();
         }
 
+        private void obtenerFilas(int folioFila)
+        {
+            foreach (DataGridViewRow fila  in dataGridView1.Rows)
+            {
+                // Obtén los valores de las celdas específicas
+                int valorFolio = Convert.ToInt32(fila.Cells["Folio"].Value);
+                string valorMovimiento = fila.Cells["TipoMovimiento"].Value.ToString();
+
+                // Verifica las condiciones deseadas
+                if (valorFolio != null && valorFolio == folioFila &&
+                    valorMovimiento != null && valorMovimiento.ToString() == "Salida")
+                {
+                    DatosVentaDetalle datosVentaDetalle = new DatosVentaDetalle
+                    {
+                        Folio = Convert.ToInt32(fila.Cells["Folio"].Value),
+                        Fecha = Convert.ToDateTime(fila.Cells["Fecha"].Value),
+                        ProductID = Convert.ToInt32(fila.Cells["ProductID"].Value),
+                        Cantidad = Convert.ToInt32(fila.Cells["Cantidad"].Value),
+                        Total = Convert.ToDecimal(fila.Cells["Total"].Value),
+                        TipoMovimiento = Convert.ToString(fila.Cells["TipoMovimiento"].Value)
+                    };
+                    // Agrega la fila a la lista
+                    datosList.Add(datosVentaDetalle);
+                }
+            }
+        }
+
+        /*
         private void obtenerFilas(int nFila)
         {
             datosList.Clear();
@@ -59,12 +87,12 @@ namespace CrudProductos.VIstas
                 }
             }
         }
-
+        */
         private void dataGridView1_CellMouseUp(object sender, DataGridViewCellMouseEventArgs e)
         {
             if (e.RowIndex >= 0)
             {
-                nFila = e.RowIndex;
+                
                 // Obtener la fila que se hizo clic
                 DataGridViewRow filaSeleccionada = dataGridView1.Rows[e.RowIndex];
                 dataGridView1.ClearSelection();
@@ -91,10 +119,10 @@ namespace CrudProductos.VIstas
         {
             try
             {
-                obtenerFilas(nFila);
+                obtenerFilas(folio);
                 datos.rollbackTransaccion(datosList);
                 MessageBox.Show($"!La transaccion de la Venta del folio {folio} se deshizo correctamente!", "CORRECTO", MessageBoxButtons.OK);
-                dataGridView1.Rows.Clear();
+                dataGridView1.DataSource = null;
                 cargarDatos();
             }
             catch (Exception ex)
