@@ -21,6 +21,18 @@ FOREIGN KEY (ProductID) REFERENCES Productos(ProductID),
 FOREIGN KEY (Folio) REFERENCES Inventario(Folio)
 );
 
+DELETE FROM Inventario where Folio = 2
+
+DELETE FROM InventarioDetalle WHERE Folio = 2
+
+SELECT * FROM Productos
+
+SELECT * FROM Inventario 
+
+SELECT * FROM InventarioDetalle
+
+SELECT * FROM Productos WHERE ProductID = 1
+
 
 
 
